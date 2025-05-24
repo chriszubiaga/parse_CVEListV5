@@ -1,0 +1,13 @@
+[project]
+name = "cve-db"
+description = "Tool to parse cvelistV5 (https://github.com/CVEProject/cvelistV5)"
+authors = [
+    { name = "chriszubiaga", email = "" }
+]
+version = "0.1.0"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "beautifulsoup4>=4.13.4",
+    "requests>=2.32.3",
+]
