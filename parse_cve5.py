@@ -73,16 +73,34 @@ def parse_cve_data(cve_json_data):
             product_info = {
                 "vendor": item.get("vendor", ""),
                 "product": item.get("product", ""),
+                "platforms": item.get("platforms", []),
                 "versions": [],
             }
             for version_info in item.get("versions", []):
-                product_info["versions"].append(
-                    {
-                        "status": version_info.get("status", ""),
-                        "version": version_info.get("version", ""),
-                        "less_than": version_info.get("lessThan", ""),
-                    }
-                )
+                if version_info.get("status") == "affected":
+                    version_value = version_info.get("version", "")
+                    if not version_value:
+                        continue
+
+                    operator_str = ""
+                    upper_bound_val = ""
+
+                    if "lessThan" in version_info:
+                        operator_str = "<"
+                        upper_bound_val = version_info.get("lessThan", "")
+                    elif "lessThanOrEqual" in version_info:
+                        operator_str = "<="
+                        upper_bound_val = version_info.get("lessThanOrEqual", "")
+
+                    if operator_str and upper_bound_val:
+                        version_string = (
+                            f"{version_value} ({operator_str} {upper_bound_val})"
+                        )
+                    else:
+                        version_string = version_value
+
+                    if version_string:
+                        product_info["versions"].append(version_string)
             products.append(product_info)
         return products
 
@@ -92,7 +110,6 @@ def parse_cve_data(cve_json_data):
 
     def _process_cvss(metrics_list):
         cvss_priority_order = ["cvssV4_0", "cvssV3_1", "cvssV3_0", "cvssV2_0"]
-        # Ensure metrics_list is not empty before sorting
         if not metrics_list:
             return {}
         sorted_metrics = sorted(
@@ -106,7 +123,7 @@ def parse_cve_data(cve_json_data):
         )
         for metric in sorted_metrics:
             if not isinstance(metric, dict):
-                continue  # Skip if metric is not a dict
+                continue
             for version_key in cvss_priority_order:
                 if version_key in metric:
                     cvss_data = metric[version_key]
@@ -126,7 +143,7 @@ def parse_cve_data(cve_json_data):
     cwe_ids, all_ref_urls, exploit_ref_urls = set(), set(), set()
     for container in prioritized_containers:
         if not isinstance(container, dict):
-            continue  # Ensure container is a dict
+            continue
         for problem_type in container.get("problemTypes", []):
             if not isinstance(problem_type, dict):
                 continue
@@ -139,9 +156,10 @@ def parse_cve_data(cve_json_data):
                 continue
             url = ref.get("url")
             if url:
-                all_ref_urls.add(url)
                 if "exploit" in ref.get("tags", []):
                     exploit_ref_urls.add(url)
+                else:
+                    all_ref_urls.add(url)
 
     ssvc_status, cisa_kev = {}, {}
     for adp_container in adp_container_list:
@@ -199,26 +217,22 @@ def process_single_file(input_filepath, output_arg):
         parsed_cve = parse_cve_data(cve_data)
 
         if output_arg is None:
-            print(f"--- Parsed data for {os.path.basename(input_filepath)} ---")
+            print(f"[*] --- Parsed data for {os.path.basename(input_filepath)} ---")
             print(json.dumps(parsed_cve, indent=4))
-            print("--- End of data ---")
+            print("[*] --- End of data ---")
             return
 
         output_path_to_use = output_arg
 
         if os.path.isdir(output_path_to_use):
-            # If output_arg is a directory, create a default-named file inside it
             current_input_filename = os.path.basename(input_filepath)
             base_name = os.path.splitext(current_input_filename)[0]
             output_filename = f"{base_name}_parsed.json"
             output_path_to_use = os.path.join(output_path_to_use, output_filename)
         elif output_path_to_use == "DEFAULT_SAVE":
-            # If -o flag used with no value, save with default name in current dir
             current_input_filename = os.path.basename(input_filepath)
             base_name = os.path.splitext(current_input_filename)[0]
             output_path_to_use = f"{base_name}_parsed.json"
-        # Else, output_arg is a specific filename provided by the user.
-        # If processing multiple files, this specific filename will be overwritten by each.
 
         with open(output_path_to_use, "w", encoding="utf-8") as outfile:
             json.dump(parsed_cve, outfile, indent=4)
@@ -227,20 +241,20 @@ def process_single_file(input_filepath, output_arg):
         )
 
     except FileNotFoundError:
-        print(f"[!] Error: Input file not found at '{input_filepath}'", file=sys.stderr)
+        print(f"Error: Input file not found at '{input_filepath}'", file=sys.stderr)
     except json.JSONDecodeError:
         print(
-            f"[!] Error: Could not decode JSON from '{input_filepath}'. Please check the file format.",
+            f"Error: Could not decode JSON from '{input_filepath}'. Please check the file format.",
             file=sys.stderr,
         )
     except IsADirectoryError:
         print(
-            f"[!] Error: '{input_filepath}' is a directory, expected a file.",
+            f"Error: '{input_filepath}' is a directory, expected a file.",
             file=sys.stderr,
         )
     except Exception as e:
         print(
-            f"[!] An unexpected error occurred while processing '{input_filepath}': {e}",
+            f"An unexpected error occurred while processing '{input_filepath}': {e}",
             file=sys.stderr,
         )
 
@@ -264,25 +278,28 @@ def main():
         help="Save output to a file. If a directory is provided, default-named files will be created inside it.",
     )
     args = parser.parse_args()
-
-    if os.path.isdir(args.input_path):
-        print(f"[*] Processing directory: {args.input_path}")
-        for filename in os.listdir(args.input_path):
-            # Consider only .json files or add other relevant extension checks
-            if filename.lower().endswith(".json"):
-                file_path_to_process = os.path.join(args.input_path, filename)
-                if os.path.isfile(file_path_to_process):
-                    print(f"[*] Processing file: {file_path_to_process}")
-                    process_single_file(file_path_to_process, args.output)
-            else:
-                print(f"[*!] Skipping non-JSON file: {filename}")
-    elif os.path.isfile(args.input_path):
-        process_single_file(args.input_path, args.output)
-    else:
-        print(
-            f"[!] Error: Input path '{args.input_path}' is not a valid file or directory.",
-            file=sys.stderr,
-        )
+    try:
+        if os.path.isdir(args.input_path):
+            print(f"[*] Processing directory: {args.input_path}")
+            for filename in os.listdir(args.input_path):
+                if filename.lower().endswith(".json"):
+                    file_path_to_process = os.path.join(args.input_path, filename)
+                    if os.path.isfile(file_path_to_process):
+                        print(f"[*] Processing file: {file_path_to_process}")
+                        process_single_file(file_path_to_process, args.output)
+                else:
+                    print(f"[*] Skipping non-JSON file: {filename}")
+        elif os.path.isfile(args.input_path):
+            print(f"[*] Processing file: {args.input_path}")
+            process_single_file(args.input_path, args.output)
+        else:
+            print(
+                f"Error: Input path '{args.input_path}' is not a valid file or directory.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+    except Exception as e:
+        print(f"A critical error occurred in main: {e}", file=sys.stderr)
         sys.exit(1)
 
 

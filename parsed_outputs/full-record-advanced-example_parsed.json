@@ -1,0 +1,44 @@
+{
+    "cve_id": "CVE-1900-1234",
+    "title": "Buffer overflow in Example Enterprise allows Privilege Escalation.",
+    "assigner": "example",
+    "published_date": "",
+    "last_modified_date": "",
+    "description": "OS Command Injection vulnerability parseFilename function of example.php in the Web Management Interface of Example.org Example Enterprise on Windows, macOS, and XT-4500 allows remote unauthenticated attackers to escalate privileges. This issue affects: 1.0 versions before 1.0.6, 2.1 versions from 2.1.6 until 2.1.9.",
+    "remediation": {
+        "solution": "This issue is fixed in 1.0.6, 2.1.9, and 3.0.0 and all later versions.",
+        "workaround": "Disable the web management interface with the command > service disable webmgmt"
+    },
+    "cwe_ids": [
+        "CWE-78"
+    ],
+    "cvss": {
+        "version": "4.0",
+        "vector_string": "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:N/VI:N/VA:N/SC:H/SI:L/SA:L",
+        "base_score": 7.8,
+        "severity": "HIGH"
+    },
+    "ssvc_status": {},
+    "affected_products": [
+        {
+            "vendor": "Example.org",
+            "product": "Example Enterprise",
+            "platforms": [
+                "Windows",
+                "MacOS",
+                "XT-4500"
+            ],
+            "versions": [
+                "1.0.0 (< 1.0.6)"
+            ]
+        }
+    ],
+    "references": [
+        "https://example.com/blog/alice/pwning_example_enterprise",
+        "https://example.org/ESA-22-11-CVE-1900-1234",
+        "https://example.org/ExampleEnterprise",
+        "https://example.org/bugs/EXAMPLE-1234"
+    ],
+    "exploit_references": [],
+    "cisa_kev": {}
+}
