@@ -94,12 +94,11 @@ The script outputs JSON data with the following structure:
         {
             "vendor": "Vendor Name",
             "product": "Product Name",
+            "platforms": ["Platform 1", "Platform 2"],
             "versions": [
-                {
-                    "status": "affected",
-                    "version": "1.0",
-                    "less_than": "1.1"
-                }
+                "1.0",
+                "2.0 (< 2.1)",
+                "3.0 (<= 3.5)"
             ]
         }
     ],
