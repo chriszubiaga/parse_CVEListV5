@@ -1,4 +1,4 @@
-# CVE Database Project
+# CVEList5 Parser
 
 This project contains a Python script (`parse_cve5.py`) to parse CVE JSON data (prioritizes CNA over ADP data for the output). The script is designed to process CVE records obtained from the official CVE List repository on GitHub, specifically [CVEListV5](https://github.com/CVEProject/cvelistV5). The script can process single CVE JSON files or entire directories containing them.
 
